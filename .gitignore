@@ -2,3 +2,13 @@
 
 .venv
 
+.env
+
+# Pinterest cookies - sensitive data
+cookies.json
+
+__pycache__/
+
+.vscode
+
+db.sqlite3

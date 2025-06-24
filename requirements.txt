@@ -1,0 +1,11 @@
+Django>=4.2.0
+djangorestframework>=3.14.0
+django-crontab>=0.7.1
+requests>=2.31.0
+
+
+# Main Pinterest scraping library
+pinterest-dl==0.7.0
+
+# Environment variable management
+python-dotenv==1.0.0

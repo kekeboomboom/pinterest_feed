@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',      # Add this
+    'django_crontab',      # Add this
+    'home_feed',           # Add this
 ]
 
 MIDDLEWARE = [
@@ -120,3 +123,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Add REST Framework configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+}
+
+# Add Cron jobs configuration
+CRONJOBS = [
+    ('0 6 * * *', 'home_feed.management.commands.scrape_images.Command.handle'),
+]
