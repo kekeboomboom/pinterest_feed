@@ -2,9 +2,9 @@ name: Deploy to DigitalOcean
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   test:
@@ -30,7 +30,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
           cd /app/pinterest_feed
           
           # Pull latest changes
-          git pull origin main
+          git pull origin master
           
           # Create environment file
           cat > .env << EOF
