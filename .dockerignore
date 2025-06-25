@@ -7,9 +7,6 @@
 Dockerfile
 docker-compose.prod.yml
 
-# Environment
-.env
-
 # Python
 __pycache__/
 *.pyc
