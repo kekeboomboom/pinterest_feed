@@ -53,5 +53,5 @@ USER app
 # Expose port
 EXPOSE 8000
 
-# Run application
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "pinterest_feed.wsgi:application"]
+# Run application with increased timeout for scraping tasks
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--timeout", "120", "pinterest_feed.wsgi:application"]
