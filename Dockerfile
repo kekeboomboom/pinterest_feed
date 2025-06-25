@@ -22,8 +22,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . /app/
 
-# Create directories for database and logs
-RUN mkdir -p /app/db /app/logs
+# Create directories for database, logs and static files
+RUN mkdir -p /app/db /app/logs /app/staticfiles
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
