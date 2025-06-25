@@ -41,11 +41,41 @@ class ImageScrapingService:
         }
     
     def scrape_home_images(self, count=20):
-        """Scrape images from Unsplash (free high-quality images)"""
-        # TODO: Implement Unsplash scraping logic
-
-        pass
-    
+        """Scrape images from Pinterest home feed - automated for cron tasks"""
+        try:
+            # first check if we have cookies (automated, no user interaction)
+            if not get_valid_pinterest_cookies():
+                logger.error("Failed to get valid Pinterest cookies")
+                return {
+                    'success': False,
+                    'message': 'No valid cookies found',
+                    'new_images_count': 0,
+                    'total_images': 0
+                }
+            
+            # download the images
+            download_home_feed()
+            
+            # Get current count from database
+            total_images = ImageURL.objects.count()
+            
+            # For now, we'll return success - in the future we can track new vs existing
+            return {
+                'success': True,
+                'message': 'Images downloaded successfully',
+                'new_images_count': count,  # placeholder - will be accurate once we implement proper tracking
+                'total_images': total_images
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in scrape_home_images: {e}")
+            return {
+                'success': False,
+                'message': f'Scraping failed: {str(e)}',
+                'new_images_count': 0,
+                'total_images': 0
+            }
+        
 
 
 def check_cookies_expired(cookies_path):
@@ -85,19 +115,21 @@ def check_cookies_expired(cookies_path):
         return True, True, 0  # Error reading file, consider expired
 
 
-def get_pinterest_cookies_python(force_refresh=False):
+def get_pinterest_cookies_python(force_refresh=False, automated=False):
     """
     Smart Pinterest cookie management
     Checks for existing cookies and their expiry before fetching new ones
     
     Args:
         force_refresh (bool): If True, forces new cookie fetch regardless of expiry
+        automated (bool): If True, runs in fully automated mode (no user interaction, headless)
     
     Returns:
         bool: True if cookies are available and valid, False otherwise
     """
-    print("\n🔑 Smart Pinterest Cookie Manager")
-    print("=" * 50)
+    if not automated:
+        print("\n🔑 Smart Pinterest Cookie Manager")
+        print("=" * 50)
     
     # Get cookies file path
     cookies_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cookies.json")
@@ -106,27 +138,40 @@ def get_pinterest_cookies_python(force_refresh=False):
     exists, expired, time_remaining = check_cookies_expired(cookies_path)
     
     if exists and not expired and not force_refresh:
-        print(f"✅ Valid cookies found!")
-        print(f"📁 Cookie file: {cookies_path}")
-        print(f"⏰ Time remaining: {time_remaining:.1f} hours")
+        if not automated:
+            print(f"✅ Valid cookies found!")
+            print(f"📁 Cookie file: {cookies_path}")
+            print(f"⏰ Time remaining: {time_remaining:.1f} hours")
+        else:
+            logger.info(f"Valid cookies found, time remaining: {time_remaining:.1f} hours")
         return True
     
     # Need to fetch new cookies
-    if exists and expired:
-        print(f"⚠️  Existing cookies have expired")
-    elif exists and force_refresh:
-        print(f"🔄 Force refresh requested")
+    if not automated:
+        if exists and expired:
+            print(f"⚠️  Existing cookies have expired")
+        elif exists and force_refresh:
+            print(f"🔄 Force refresh requested")
+        else:
+            print(f"📝 No cookies file found")
+        
+        print("🚀 Fetching new Pinterest cookies...")
     else:
-        print(f"📝 No cookies file found")
-    
-    print("🚀 Fetching new Pinterest cookies...")
+        if exists and expired:
+            logger.info("Existing cookies have expired, fetching new ones")
+        else:
+            logger.info("No valid cookies found, fetching new ones")
     
     # Load environment variables from .env file
     if not load_dotenv():
-        print("❌ .env file not found!")
-        print("Create .env file with:")
-        print("account=your_email@example.com")
-        print("password=your_password")
+        error_msg = ".env file not found!"
+        if not automated:
+            print(f"❌ {error_msg}")
+            print("Create .env file with:")
+            print("account=your_email@example.com")
+            print("password=your_password")
+        else:
+            logger.error(error_msg)
         return False
     
     # Get credentials from environment variables
@@ -134,19 +179,26 @@ def get_pinterest_cookies_python(force_refresh=False):
     password = os.getenv('password')
     
     if not email or not password:
-        print("❌ Email or password not found in .env file")
+        error_msg = "Email or password not found in .env file"
+        if not automated:
+            print(f"❌ {error_msg}")
+        else:
+            logger.error(error_msg)
         return False
     
     try:
-        print(f"🌐 Logging in to Pinterest as: {email}")
+        if not automated:
+            print(f"🌐 Logging in to Pinterest as: {email}")
+        else:
+            logger.info(f"Logging in to Pinterest as: {email}")
         
-        # Login using browser
+        # Login using browser - use headless mode for automated tasks
         cookies = (
             PinterestDL.with_browser(
                 browser_type="firefox",
-                headless=False,
+                headless=automated,  # Use headless mode for automated tasks
                 incognito=False,
-                verbose=False,
+                verbose=not automated,  # Reduce verbosity for automated tasks
             )
             .login(email, password)
             .get_cookies(after_sec=7)
@@ -159,22 +211,32 @@ def get_pinterest_cookies_python(force_refresh=False):
         # Check new cookie expiry
         _, _, new_time_remaining = check_cookies_expired(cookies_path)
         
-        print(f"✅ Login successful! New cookies saved to {cookies_path}")
-        print(f"🍪 Captured {len(cookies)} cookies")
-        print(f"⏰ New cookies valid for: {new_time_remaining:.1f} hours")
+        if not automated:
+            print(f"✅ Login successful! New cookies saved to {cookies_path}")
+            print(f"🍪 Captured {len(cookies)} cookies")
+            print(f"⏰ New cookies valid for: {new_time_remaining:.1f} hours")
+        else:
+            logger.info(f"Login successful! Captured {len(cookies)} cookies, valid for {new_time_remaining:.1f} hours")
         
         return True
         
     except Exception as e:
-        print(f"❌ Login failed: {str(e)}")
-        print("💡 Try using the CLI method instead")
+        error_msg = f"Login failed: {str(e)}"
+        if not automated:
+            print(f"❌ {error_msg}")
+            print("💡 Try using the CLI method instead")
+        else:
+            logger.error(error_msg)
         return False
 
 
-def get_valid_pinterest_cookies():
+def get_valid_pinterest_cookies(automated=True):
     """
     Get valid Pinterest cookies for API usage
     Automatically handles cookie refresh if needed
+    
+    Args:
+        automated (bool): If True, runs in automated mode (for cron tasks)
     
     Returns:
         list: List of cookie dictionaries if successful, None if failed
@@ -182,7 +244,7 @@ def get_valid_pinterest_cookies():
     cookies_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cookies.json")
     
     # Ensure we have valid cookies
-    if not get_pinterest_cookies_python():
+    if not get_pinterest_cookies_python(automated=automated):
         return None
     
     try:
@@ -190,7 +252,10 @@ def get_valid_pinterest_cookies():
             cookies = json.load(f)
         return cookies
     except Exception as e:
-        print(f"❌ Error loading cookies: {e}")
+        if automated:
+            logger.error(f"Error loading cookies: {e}")
+        else:
+            print(f"❌ Error loading cookies: {e}")
         return None
 
 
@@ -208,3 +273,50 @@ def format_cookies_for_requests(cookies_list):
         return {}
     
     return {cookie['name']: cookie['value'] for cookie in cookies_list if 'name' in cookie and 'value' in cookie}
+
+
+def download_home_feed():
+    # Simple example: Download 10 images from home feed using scrape_and_download
+    print("🚀 Home Feed Download Example")
+    print("=" * 50)
+    
+    try:
+        print("📱 Downloading images from your Pinterest home feed...")
+        
+        # Use scrape_and_download directly - this will actually download the files
+        ## List[PinterestImage]
+        images = (
+            PinterestDL.with_browser(
+                browser_type="firefox",
+                timeout=10,
+                headless=True,
+                incognito=False,
+                verbose=True,
+                ensure_alt=False,
+            )
+            .with_cookies_path(os.path.join(os.path.dirname(os.path.dirname(__file__)), "cookies.json"))
+            .scrape(
+                url="https://www.pinterest.com",
+                num=10,
+            )
+        )
+
+        # Save the images to a database
+        image_instances = []
+        for image in images:
+            image_instances.append(ImageURL(
+                src=image.src,
+                alt=image.alt,
+                origin=image.origin,
+                fallback_urls=image.fallback_urls
+            ))
+        
+        # save to database using bulk_create for better performance
+        if image_instances:
+            ImageURL.objects.bulk_create(image_instances, ignore_conflicts=True)
+            logger.info(f"✅ Successfully saved {len(image_instances)} images to database")
+
+    except Exception as e:
+        logger.error(f"❌ Error: {e}")
+
+  
