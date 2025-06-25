@@ -10,3 +10,6 @@ pinterest-dl==0.7.0
 
 # Environment variable management
 python-dotenv==1.0.0
+
+# Production dependencies
+gunicorn>=21.2.0
