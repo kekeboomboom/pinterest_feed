@@ -4,15 +4,34 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV DISPLAY=:99
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including browser dependencies for Pinterest scraping
 RUN apt-get update && apt-get install -y \
     gcc \
     sqlite3 \
     git \
+    firefox-esr \
+    xvfb \
+    xorg \
+    xserver-xephyr \
+    dbus-x11 \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxss1 \
+    libxtst6 \
+    xdg-utils \
+    wget \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
