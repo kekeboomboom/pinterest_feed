@@ -18,20 +18,60 @@ class ImageURLManager:
     @staticmethod
     def add_urls(urls, source='unknown'):
         """Add new URLs to database, returns count of added URLs"""
-        # TODO: Implement database insertion with duplicate handling
-        pass
+        if not urls:
+            return 0
+        
+        image_instances = []
+        for url_data in urls:
+            if isinstance(url_data, dict):
+                image_instances.append(ImageURL(
+                    src=url_data.get('src', ''),
+                    alt=url_data.get('alt', ''),
+                    origin=url_data.get('origin', source),
+                    fallback_urls=url_data.get('fallback_urls', [])
+                ))
+            else:
+                # Handle simple string URLs
+                image_instances.append(ImageURL(
+                    src=str(url_data),
+                    alt='',
+                    origin=source,
+                    fallback_urls=[]
+                ))
+        
+        if image_instances:
+            ImageURL.objects.bulk_create(image_instances, ignore_conflicts=True)
+            return len(image_instances)
+        return 0
     
     @staticmethod
     def get_random_urls(count=10):
         """Get random active URLs from database"""
-        # TODO: Implement random URL retrieval
-        pass
+        active_images = ImageURL.objects.filter(is_active=True)
+        
+        if not active_images.exists():
+            return []
+        
+        # Get random selection
+        if active_images.count() <= count:
+            return list(active_images)
+        else:
+            return list(active_images.order_by('?')[:count])  # Random order
+    
+    @staticmethod
+    def get_active_count():
+        """Get count of active URLs in database"""
+        return ImageURL.objects.filter(is_active=True).count()
     
     @staticmethod
     def deactivate_old_urls(days=30):
         """Deactivate URLs older than specified days"""
-        # TODO: Implement URL cleanup logic
-        pass
+        cutoff_date = datetime.now() - timedelta(days=days)
+        updated_count = ImageURL.objects.filter(
+            created_at__lt=cutoff_date,
+            is_active=True
+        ).update(is_active=False)
+        return updated_count
 
 class ImageScrapingService:
     def __init__(self):

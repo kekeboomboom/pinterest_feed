@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 import random
 from .models import ImageURL
-from .services import ImageScrapingService
+from .services import ImageScrapingService, ImageURLManager
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -12,27 +12,24 @@ def home_feed(request):
     """
     Return random image URLs for the home feed
     Query params:
-    - count: number of images to return (default: 10, max: 50)
+    - count: number of images to return (default: 1, max: 10)
     """
     try:
         # Get count parameter
-        count = int(request.GET.get('count', 10))
-        count = min(count, 50)  # Limit to 50 images max
+        count = int(request.GET.get('count', 1))
+        count = min(count, 10)  # Limit to 10 images max
         
-        # Get active URLs from database
-        active_images = ImageURL.objects.filter(is_active=True)
+        # Get total count of available images
+        total_available = ImageURLManager.get_active_count()
         
-        if not active_images.exists():
+        if total_available == 0:
             return Response({
                 'message': 'No images available. Please run the scraping task first.',
                 'images': []
             }, status=status.HTTP_200_OK)
         
-        # Get random selection
-        if active_images.count() <= count:
-            selected_images = active_images
-        else:
-            selected_images = active_images.order_by('?')[:count]  # Random order
+        # Get random selection using service layer
+        selected_images = ImageURLManager.get_random_urls(count)
         
         selected_images_data = [
             {
@@ -46,7 +43,7 @@ def home_feed(request):
         
         return Response({
             'message': 'Images retrieved successfully',
-            'total_available': active_images.count(),
+            'total_available': total_available,
             'count': len(selected_images_data),
             'images': selected_images_data
         }, status=status.HTTP_200_OK)
@@ -64,5 +61,31 @@ def home_feed(request):
 @permission_classes([AllowAny])
 def trigger_scraping(request):
     """Manual trigger for scraping (for testing)"""
-    # TODO: Implement manual scraping trigger
-    pass
+    try:
+        # Get count parameter (optional)
+        count = int(request.data.get('count', 20))
+        count = min(count, 50)  # Limit to 50 images max for scraping
+        
+        # Use the service to scrape images
+        scraping_service = ImageScrapingService()
+        result = scraping_service.scrape_home_images(count)
+        
+        if result['success']:
+            return Response({
+                'message': result['message'],
+                'new_images_count': result['new_images_count'],
+                'total_images': result['total_images']
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'error': result['message']
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    except ValueError:
+        return Response({
+            'error': 'Invalid count parameter. Must be a number.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': f'Internal server error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
