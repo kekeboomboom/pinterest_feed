@@ -1,0 +1,287 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Pinterest Home Feed API",
+    "description": "API for fetching random Pinterest-style images with API key authentication",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://your-domain.com",
+      "description": "Production server - Replace with your actual domain"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/api/home_feed/": {
+      "get": {
+        "summary": "Get random Pinterest-style images",
+        "description": "Fetches a random selection of Pinterest-style images from the home feed. Requires API key authentication.",
+        "operationId": "getHomeFeed",
+        "tags": ["Home Feed"],
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "description": "Number of images to return (between 1 and 10)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 1
+            },
+            "example": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved images",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Success message",
+                      "example": "Images retrieved successfully"
+                    },
+                    "total_available": {
+                      "type": "integer",
+                      "description": "Total number of images available in the database",
+                      "example": 150
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Number of images returned in this response",
+                      "example": 3
+                    },
+                    "images": {
+                      "type": "array",
+                      "description": "Array of image objects",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "src": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "Direct URL to the image",
+                            "example": "https://i.pinimg.com/564x/ab/cd/ef/abcdef123456.jpg"
+                          },
+                          "alt": {
+                            "type": "string",
+                            "description": "Alt text description of the image",
+                            "example": "Beautiful sunset landscape with mountains"
+                          },
+                          "origin": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "Original Pinterest pin URL",
+                            "example": "https://pinterest.com/pin/123456789012345/"
+                          },
+                          "fallback_urls": {
+                            "type": "array",
+                            "description": "Alternative URLs if the main image fails to load",
+                            "items": {
+                              "type": "string",
+                              "format": "uri"
+                            },
+                            "example": []
+                          }
+                        },
+                        "required": ["src", "alt", "origin", "fallback_urls"]
+                      }
+                    }
+                  },
+                  "required": ["message", "total_available", "count", "images"]
+                },
+                "examples": {
+                  "single_image": {
+                    "summary": "Single image response",
+                    "value": {
+                      "message": "Images retrieved successfully",
+                      "total_available": 150,
+                      "count": 1,
+                      "images": [
+                        {
+                          "src": "https://i.pinimg.com/564x/ab/cd/ef/abcdef123456.jpg",
+                          "alt": "Beautiful sunset landscape with mountains",
+                          "origin": "https://pinterest.com/pin/123456789012345/",
+                          "fallback_urls": []
+                        }
+                      ]
+                    }
+                  },
+                  "multiple_images": {
+                    "summary": "Multiple images response",
+                    "value": {
+                      "message": "Images retrieved successfully",
+                      "total_available": 150,
+                      "count": 3,
+                      "images": [
+                        {
+                          "src": "https://i.pinimg.com/564x/ab/cd/ef/abcdef123456.jpg",
+                          "alt": "Beautiful sunset landscape with mountains",
+                          "origin": "https://pinterest.com/pin/123456789012345/",
+                          "fallback_urls": []
+                        },
+                        {
+                          "src": "https://i.pinimg.com/564x/12/34/56/123456789abc.jpg",
+                          "alt": "Modern interior design with minimalist furniture",
+                          "origin": "https://pinterest.com/pin/987654321098765/",
+                          "fallback_urls": []
+                        },
+                        {
+                          "src": "https://i.pinimg.com/564x/gh/ij/kl/ghijkl789012.jpg",
+                          "alt": "Delicious homemade pasta recipe",
+                          "origin": "https://pinterest.com/pin/456789012345678/",
+                          "fallback_urls": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid count parameter. Must be a number."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Invalid API key"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal server error: Database connection failed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "API key authentication. Format: 'Api-Key YOUR_API_KEY_HERE'"
+      }
+    },
+    "schemas": {
+      "Image": {
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string",
+            "format": "uri",
+            "description": "Direct URL to the image"
+          },
+          "alt": {
+            "type": "string",
+            "description": "Alt text description of the image"
+          },
+          "origin": {
+            "type": "string",
+            "format": "uri",
+            "description": "Original Pinterest pin URL"
+          },
+          "fallback_urls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Alternative URLs if the main image fails to load"
+          }
+        },
+        "required": ["src", "alt", "origin", "fallback_urls"]
+      },
+      "HomeFeedResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Success message"
+          },
+          "total_available": {
+            "type": "integer",
+            "description": "Total number of images available in the database"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of images returned in this response"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "required": ["message", "total_available", "count", "images"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message describing what went wrong"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Home Feed",
+      "description": "Operations related to fetching Pinterest-style images from the home feed"
+    }
+  ]
+}

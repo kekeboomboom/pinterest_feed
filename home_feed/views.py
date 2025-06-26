@@ -1,18 +1,23 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 import random
 from .models import ImageURL
 from .services import ImageScrapingService, ImageURLManager
+from .authentication import APIKeyAuthentication
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@authentication_classes([APIKeyAuthentication])
+@permission_classes([IsAuthenticated])
 def home_feed(request):
     """
     Return random image URLs for the home feed
     Query params:
     - count: number of images to return (default: 1, max: 10)
+    
+    Authentication:
+    - Requires API key in Authorization header: "Authorization: Api-Key <your_api_key>"
     """
     try:
         # Get count parameter
