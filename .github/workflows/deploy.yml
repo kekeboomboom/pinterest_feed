@@ -50,14 +50,21 @@ jobs:
           # Stop existing containers
           docker-compose -f docker-compose.prod.yml down
           
-          # Build and start containers
+          # Create staticfiles directory on host if it doesn't exist
+          sudo mkdir -p /app/pinterest_feed/staticfiles
+          sudo chown -R $USER:$USER /app/pinterest_feed/staticfiles
+          
+          # Build and start containers (web service only now)
           docker-compose -f docker-compose.prod.yml up -d --build
           
           # Run migrations
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
           
-          # Collect static files
+          # Collect static files to host directory
           docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+          
+          # Note: nginx is configured separately on the host for multi-app deployment
+          # Django app is available on localhost:8000
           
           # Restart services
           docker-compose -f docker-compose.prod.yml restart

@@ -208,15 +208,15 @@ def get_pinterest_cookies_python(force_refresh=False, automated=False):
         if not automated:
             print(f"❌ {error_msg}")
             print("Create .env file with:")
-            print("account=your_email@example.com")
+            print("ACCOUNT=your_email@example.com")
             print("password=your_password")
         else:
             logger.error(error_msg)
         return False
     
     # Get credentials from environment variables
-    email = os.getenv('account')
-    password = os.getenv('password')
+    email = os.getenv('ACCOUNT')
+    password = os.getenv('PASSWORD')
     
     if not email or not password:
         error_msg = "Email or password not found in .env file"

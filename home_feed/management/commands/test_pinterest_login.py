@@ -14,7 +14,7 @@ class Command(BaseCommand):
         if not os.path.exists('.env'):
             self.stdout.write('❌ .env file not found!')
             self.stdout.write('Please create .env file with:')
-            self.stdout.write('account=your_email@example.com')
+            self.stdout.write('ACCOUNT=your_email@example.com')
             self.stdout.write('password=your_password')
             return
         
